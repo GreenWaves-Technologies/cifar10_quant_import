@@ -2,16 +2,14 @@
 
 ## Training
 
-In the cifar10_training.ipynb notebook you can find the training script. I used the google colab with GPU enabled, it can be also run on your local machine.
+In the *cifar10_training.ipynb* notebook you can find the training script, the model is inspired by the open source [Kaggle Project](https://www.kaggle.com/ektasharma/simple-cifar10-cnn-keras-code-with-88-accuracy#A-Simple-Keras-CNN-trained-on-CIFAR-10-dataset-with-over-88%-accuracy-(Without-Data-Augmentation)). I used the google colab with GPU enabled, it can be also run on your local machine. It produced 2 .tflite files:
 
-It produced 2 tflite files:
-
-	- cifar10_model_fp32.tflite
-	- cifar10_model_uint8.tflite
+- ```cifar10_model_fp32.tflite```: Full precision
+- ```cifar10_model_uint8.tflite```: Quantized
 
 ## Generate nntool project
 
-With the quantized one you can generate your project. First source the sdk and open an nntool interactive shell environment:
+With the quantized one you can directly generate your project. First source the sdk and open an nntool interactive shell environment:
 
 ```
 source gap_sdk/sourceme.sh
@@ -35,13 +33,13 @@ make clean all run platform=gvsoc
 
 ## Add application specific code
 
-For clarity reason I reorganized the folder moving the model and the nntool_script into the *model* folder, changing accordingly the paths in the *common.mk* file. I also added the hwc version for completeness, it can be chosen adding **MODEL_HWC=1** in the make command.
+For the sake of clarity, the project folder has been reorganized moving the tflite model and the nntool_script into the *model* folder, changing accordingly the paths in the *common.mk* file. An HWC tensor layout version of the script has been added as well, it can be chosen adding **MODEL_HWC=1** in the make command.
 
-From the training scripts you can save several sample data, I made a directory for them: *samples*
+From the training scripts you can save several sample data, you can find some of them in the *samples* folder.
 
-I've then changed the application code to run on real data (images from testing dataset) adding the snippet below:
+The application code has then been changed to run on real data (images from testing dataset) adding the snippet below:
 
-```
+```ruby
 #include "gaplib/ImgIO.h"
 #define __XSTR(__s) __STR(__s)
 #define __STR(__s) #__s    ImageName = __XSTR(AT_IMAGE);
@@ -60,7 +58,8 @@ I've then changed the application code to run on real data (images from testing 
 ...
 ```
 
-This loads data from an image defined by the *AT_IMAGE* in the *Makefile*. It also already shift the [0:255] data into the [-128:127] required by the so trained model.
+This loads data from an image defined by the *AT_IMAGE* in the *Makefile*. It also already shift the \[0:255\] data into the \[-128:127\] required by the so trained model.
+NOTE: The data provided in the C code of the application need to be the quantized version of the data expected by the model, from qshow 0 in nntool you can look at the expected range. For example if the input is expected in the \[-1.0:1.0\] real domain range and its data type is int8 \[-128:127\], then -128 will represent -1.0 and 127->0.99.
 
 ## Test on your dataset the deployed graph
 
