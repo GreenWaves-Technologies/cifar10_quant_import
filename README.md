@@ -1,5 +1,7 @@
 # CIFAR10 on GAP
 
+## Training
+
 In the cifar10_training.ipynb notebook you can find the training script. I used the google colab with GPU enabled, it can be also run on your local machine.
 
 It produced 2 tflite files:
@@ -7,21 +9,31 @@ It produced 2 tflite files:
 	- cifar10_model_fp32.tflite
 	- cifar10_model_uint8.tflite
 
-With the quantized one you can generate your project:
+## Generate nntool project
+
+With the quantized one you can generate your project. First source the sdk and open an nntool interactive shell environment:
 
 ```
 source gap_sdk/sourceme.sh
-nntool cifar10_model_uint8.tflite -q
+nntool
+```
+
+Run the following commands in the nntool shell to prepare the model and generate an already functioning project:
+
+```
+open cifar10_model_uint8.tflite -q
 adjust
 fusions --scale8
 gen_project .
 ```
 
-The default project can already run on uninitialized input data, the application code is in **cifar10_model_uint8.c**:
+The default project run on uninitialized input data and the application code is in **cifar10_model_uint8.c**:
 
 ```
 make clean all run platform=gvsoc
 ```
+
+## Add application specific code
 
 For clarity reason I reorganized the folder moving the model and the nntool_script into the *model* folder, changing accordingly the paths in the *common.mk* file. I also added the hwc version for completeness, it can be chosen adding **MODEL_HWC=1** in the make command.
 
@@ -49,3 +61,7 @@ I've then changed the application code to run on real data (images from testing 
 ```
 
 This loads data from an image defined by the *AT_IMAGE* in the *Makefile*. It also already shift the [0:255] data into the [-128:127] required by the so trained model.
+
+## Test on your dataset the deployed graph
+
+**Nntool** is a python program which can run inference on data giving bitexact results wrt the real platform. You can import nntool in your python script and use it similarly to the tflite interpreter. *model/test_accuracy.py* shows how to do it.
