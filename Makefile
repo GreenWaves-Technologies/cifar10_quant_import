@@ -32,7 +32,7 @@ $(info Building NNTOOL model)
 NNTOOL_EXTRA_FLAGS ?= 
 
 include common/model_decl.mk
-IMAGE = $(CURDIR)/samples/cifar_test_0.ppm
+IMAGE = $(CURDIR)/samples/cifar_test_0_3.ppm
 
 # pulpChip = GAP
 # PULP_APP = $(MODEL_PREFIX)
