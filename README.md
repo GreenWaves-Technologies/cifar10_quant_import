@@ -39,7 +39,7 @@ From the training scripts you can save several sample data, you can find some of
 
 The application code has then been changed to run on real data (images from testing dataset) adding the snippet below:
 
-```ruby
+```C
 #include "gaplib/ImgIO.h"
 #define __XSTR(__s) __STR(__s)
 #define __STR(__s) #__s    ImageName = __XSTR(AT_IMAGE);
