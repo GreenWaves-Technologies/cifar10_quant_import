@@ -1,5 +1,9 @@
 # CIFAR10 on GAP
 
+Requirements:
+- Install the GAP sdk (>=v4.7.0) from [this link](https://github.com/GreenWaves-Technologies/gap_sdk)
+- Tensorflow >=2.7.0
+
 ## Training
 
 In the *cifar10_training.ipynb* notebook you can find the training script, the model is inspired by the open source [Kaggle Project](https://www.kaggle.com/ektasharma/simple-cifar10-cnn-keras-code-with-88-accuracy#A-Simple-Keras-CNN-trained-on-CIFAR-10-dataset-with-over-88%-accuracy-(Without-Data-Augmentation)). I used the google colab with GPU enabled, it can be also run on your local machine. It produced 2 .tflite files:
