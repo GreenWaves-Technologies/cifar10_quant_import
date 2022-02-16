@@ -27,7 +27,11 @@ AT_HYPERFLASH_FS_EXT_ADDR_TYPE cifar10_model_uint8_L3_Flash = 0;
 
 /* Inputs */
 char *ImageName;
+#ifdef MODEL_NE16
+L2_MEM unsigned char Input_1[3072];
+#else
 L2_MEM signed char Input_1[3072];
+#endif
 /* Outputs */
 L2_MEM short int Output_1[10];
 
@@ -61,7 +65,7 @@ int test_cifar10_model_uint8(void)
      */
 
     ImageName = __XSTR(AT_IMAGE);
-    #if defined(MODEL_HWC)
+    #if defined(MODEL_HWC) || defined(MODEL_NE16)
     int Traspose2CHW = 0;
     #else
     int Traspose2CHW = 1;
@@ -71,7 +75,10 @@ int test_cifar10_model_uint8(void)
         printf("Failed to load image %s\n", ImageName);
         pmsis_exit(-1);
     }
+    // NE16 takes unsigned input with zero point implied (-128)
+    #if !defined(MODEL_NE16)
     for (int i=0; i<32*32*3; i++) Input_1[i] -= 128;
+    #endif
 
 #ifndef __EMUL__
     /* Configure And open cluster. */
@@ -84,21 +91,21 @@ int test_cifar10_model_uint8(void)
         printf("Cluster open failed !\n");
         pmsis_exit(-4);
     }
-    int cur_fc_freq = pi_freq_set(PI_FREQ_DOMAIN_FC, 250000000);
+    int cur_fc_freq = pi_freq_set(PI_FREQ_DOMAIN_FC, FREQ_FC*1000*1000);
     if (cur_fc_freq == -1)
     {
         printf("Error changing frequency !\nTest failed...\n");
         pmsis_exit(-4);
     }
 
-    int cur_cl_freq = pi_freq_set(PI_FREQ_DOMAIN_CL, 175000000);
+    int cur_cl_freq = pi_freq_set(PI_FREQ_DOMAIN_CL, FREQ_CL*1000*1000);
     if (cur_cl_freq == -1)
     {
         printf("Error changing frequency !\nTest failed...\n");
         pmsis_exit(-5);
     }
 #ifdef __GAP9__
-    pi_freq_set(PI_FREQ_DOMAIN_PERIPH, 250000000);
+    pi_freq_set(PI_FREQ_DOMAIN_PERIPH, FREQ_FC*1000*1000);
 #endif
 #endif
     // IMPORTANT - MUST BE CALLED AFTER THE CLUSTER IS SWITCHED ON!!!!

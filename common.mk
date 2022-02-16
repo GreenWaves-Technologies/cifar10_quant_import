@@ -17,9 +17,20 @@ NNTOOL_EXTRA_FLAGS +=
 MODEL_QUANTIZED=1
 
 # Memory sizes for cluster L1, SoC L2 and Flash
-TARGET_L1_SIZE = 64000
-TARGET_L2_SIZE = 300000
-TARGET_L3_SIZE = 8000000
+ifeq '$(TARGET_CHIP_FAMILY)' 'GAP9'
+	FREQ_CL?=375
+	FREQ_FC?=375
+	TARGET_L1_SIZE = 128000
+	TARGET_L2_SIZE = 1300000
+	TARGET_L3_SIZE = 8000000
+else
+	FREQ_CL?=175
+	FREQ_FC?=250
+	TARGET_L1_SIZE = 64000
+	TARGET_L2_SIZE = 300000
+	TARGET_L3_SIZE = 8000000
+endif
+
 
 # Cluster stack size for master core and other cores
 CLUSTER_STACK_SIZE=4096
@@ -27,11 +38,16 @@ CLUSTER_SLAVE_STACK_SIZE=1024
 CLUSTER_NUM_CORES=8
 
 MODEL_HWC ?= 0
+MODEL_NE16?= 0
+
+NNTOOL_SCRIPT = model/nntool_script_chw
 ifeq ($(MODEL_HWC), 1)
 	NNTOOL_SCRIPT = model/nntool_script_hwc
 	APP_CFLAGS += -DMODEL_HWC
-else
-	NNTOOL_SCRIPT = model/nntool_script_chw
+endif
+ifeq ($(MODEL_NE16), 1)
+	NNTOOL_SCRIPT = model/nntool_script_ne16
+	APP_CFLAGS += -DMODEL_NE16
 endif
 
 

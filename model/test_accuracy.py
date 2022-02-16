@@ -24,7 +24,7 @@ for file in dataset_files:
 	# Even in quantized mode nntool requires float data exactly as you trained the model -> [-1.0: 1.0]
 	input_tensor = input_tensor.astype(np.float32) / 128 - 1
 
-	outputs = executer.execute([input_tensor], qmode=QuantizationMode.all(), silent=True)
+	outputs = executer.execute([input_tensor], qmode=QuantizationMode.all_dequantize(), silent=True)
 	pred_class = np.argmax(outputs[-1][0])
 	confidence = outputs[-1][0][pred_class]
 	print(f"Predicted Class: {pred_class} with confidence: {confidence}")
