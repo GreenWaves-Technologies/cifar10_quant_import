@@ -11,22 +11,35 @@ endif
 include common.mk
 include $(RULES_DIR)/at_common_decl.mk
 
-io=stdout
+io=host
 
-RAM_FLASH_TYPE ?= HYPER
-#PMSIS_OS=freertos
+FLASH_TYPE ?= DEFAULT
+RAM_TYPE   ?= DEFAULT
 
-ifeq '$(RAM_FLASH_TYPE)' 'HYPER'
-APP_CFLAGS += -DUSE_HYPER
-MODEL_L3_EXEC=hram
-MODEL_L3_CONST=hflash
-else
-APP_CFLAGS += -DUSE_SPI
-CONFIG_SPIRAM = 1
-MODEL_L3_EXEC=qspiram
-MODEL_L3_CONST=qpsiflash
+ifeq '$(FLASH_TYPE)' 'HYPER'
+  MODEL_L3_FLASH=AT_MEM_L3_HFLASH
+else ifeq '$(FLASH_TYPE)' 'MRAM'
+  MODEL_L3_FLASH=AT_MEM_L3_MRAMFLASH
+  READFS_FLASH = target/chip/soc/mram
+else ifeq '$(FLASH_TYPE)' 'QSPI'
+  MODEL_L3_FLASH=AT_MEM_L3_QSPIFLASH
+  READFS_FLASH = target/board/devices/spiflash
+else ifeq '$(FLASH_TYPE)' 'OSPI'
+  MODEL_L3_FLASH=AT_MEM_L3_OSPIFLASH
+  #READFS_FLASH = target/board/devices/ospiflash
+else ifeq '$(FLASH_TYPE)' 'DEFAULT'
+  MODEL_L3_FLASH=AT_MEM_L3_DEFAULTFLASH
 endif
 
+ifeq '$(RAM_TYPE)' 'HYPER'
+  MODEL_L3_RAM=AT_MEM_L3_HRAM
+else ifeq '$(RAM_TYPE)' 'QSPI'
+  MODEL_L3_RAM=AT_MEM_L3_QSPIRAM
+else ifeq '$(RAM_TYPE)' 'OSPI'
+  MODEL_L3_RAM=AT_MEM_L3_OSPIRAM
+else ifeq '$(RAM_TYPE)' 'DEFAULT'
+  MODEL_L3_RAM=AT_MEM_L3_DEFAULTRAM
+endif
 
 $(info Building NNTOOL model)
 NNTOOL_EXTRA_FLAGS ?= 
@@ -34,11 +47,8 @@ NNTOOL_EXTRA_FLAGS ?=
 include common/model_decl.mk
 IMAGE = $(CURDIR)/samples/cifar_test_0_3.ppm
 
-# pulpChip = GAP
-# PULP_APP = $(MODEL_PREFIX)
-
 APP = $(MODEL_PREFIX)
-APP_SRCS += $(MODEL_PREFIX).c $(MODEL_GEN_C) $(MODEL_COMMON_SRCS) $(CNN_LIB)
+APP_SRCS += main.c $(MODEL_GEN_C) $(MODEL_COMMON_SRCS) $(CNN_LIB)
 
 APP_CFLAGS += -g -O3 -mno-memcpy -fno-tree-loop-distribute-patterns
 APP_CFLAGS += -I. -I$(MODEL_COMMON_INC) -I$(TILER_EMU_INC) -I$(TILER_INC) $(CNN_LIB_INCLUDE) -I$(MODEL_BUILD)

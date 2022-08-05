@@ -10,8 +10,9 @@
 
 
 /* Autotiler includes. */
-#include "cifar10_model_uint8.h"
-#include "cifar10_model_uint8Kernels.h"
+#include "cifar10_model.h"
+#include "cifar10_modelKernels.h"
+#include "cifar10_modelInfo.h"
 #include "gaplib/ImgIO.h"
 #define __XSTR(__s) __STR(__s)
 #define __STR(__s) #__s 
@@ -23,8 +24,9 @@
 #define STACK_SIZE      1024
 #endif
 
-AT_HYPERFLASH_FS_EXT_ADDR_TYPE cifar10_model_uint8_L3_Flash = 0;
+AT_HYPERFLASH_FS_EXT_ADDR_TYPE cifar10_model_L3_Flash = 0;
 
+static char * ClassDict[10] = {"plane", "car", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"};
 /* Inputs */
 char *ImageName;
 #ifdef MODEL_NE16
@@ -33,7 +35,15 @@ L2_MEM unsigned char Input_1[3072];
 L2_MEM signed char Input_1[3072];
 #endif
 /* Outputs */
+#ifdef OUTPUT_SHORT
 L2_MEM short int Output_1[10];
+#else
+#ifdef MODEL_NE16
+L2_MEM unsigned char Output_1[10];
+#else
+L2_MEM signed char Output_1[10];
+#endif
+#endif
 
 static void cluster()
 {
@@ -43,20 +53,21 @@ static void cluster()
     gap_cl_resethwtimer();
     #endif
 
-    cifar10_model_uint8CNN(Input_1, Output_1);
+    cifar10_modelCNN(Input_1, Output_1);
     printf("Runner completed\n");
     int MaxPred=Output_1[0], PredClass=0;
     for (int i=1; i<10; i++){
+        printf("Class: %10s --> %5.2f\n", ClassDict[i], (((float) Output_1[i]) - cifar10_model_Output_1_OUT_ZERO_POINT) * cifar10_model_Output_1_OUT_SCALE);
         if (Output_1[i] > MaxPred) {
             MaxPred = Output_1[i];
             PredClass = i;
         }
     }
-    printf("Predicted Class: %d with confidence: %d\n", PredClass, MaxPred);
+    printf("Predicted Class: %10s with confidence: %.2f\n", ClassDict[PredClass], (((float) MaxPred) - cifar10_model_Output_1_OUT_ZERO_POINT) * cifar10_model_Output_1_OUT_SCALE);
 
 }
 
-int test_cifar10_model_uint8(void)
+int test_cifar10_model(void)
 {
     printf("Entering main controller\n");
     /* ----------------> 
@@ -84,65 +95,60 @@ int test_cifar10_model_uint8(void)
     /* Configure And open cluster. */
     struct pi_device cluster_dev;
     struct pi_cluster_conf cl_conf;
+    pi_cluster_conf_init(&cl_conf);
     cl_conf.id = 0;
+    cl_conf.cc_stack_size = STACK_SIZE;
     pi_open_from_conf(&cluster_dev, (void *) &cl_conf);
     if (pi_cluster_open(&cluster_dev))
     {
         printf("Cluster open failed !\n");
         pmsis_exit(-4);
     }
-    int cur_fc_freq = pi_freq_set(PI_FREQ_DOMAIN_FC, FREQ_FC*1000*1000);
-    if (cur_fc_freq == -1)
-    {
-        printf("Error changing frequency !\nTest failed...\n");
-        pmsis_exit(-4);
-    }
-
-    int cur_cl_freq = pi_freq_set(PI_FREQ_DOMAIN_CL, FREQ_CL*1000*1000);
-    if (cur_cl_freq == -1)
-    {
-        printf("Error changing frequency !\nTest failed...\n");
-        pmsis_exit(-5);
-    }
-#ifdef __GAP9__
+    pi_freq_set(PI_FREQ_DOMAIN_FC, FREQ_FC*1000*1000);
+    pi_freq_set(PI_FREQ_DOMAIN_CL, FREQ_CL*1000*1000);
     pi_freq_set(PI_FREQ_DOMAIN_PERIPH, FREQ_FC*1000*1000);
-#endif
+    printf("Set FC Frequency = %d MHz, CL Frequency = %d MHz, PERIIPH Frequency = %d MHz\n",
+            pi_freq_get(PI_FREQ_DOMAIN_FC), pi_freq_get(PI_FREQ_DOMAIN_CL), pi_freq_get(PI_FREQ_DOMAIN_PERIPH));
+    #ifdef VOLTAGE
+    pi_pmu_voltage_set(PI_PMU_VOLTAGE_DOMAIN_CHIP, VOLTAGE);
+    pi_pmu_voltage_set(PI_PMU_VOLTAGE_DOMAIN_CHIP, VOLTAGE);
+    printf("Voltage: %dmV\n", VOLTAGE);
+    #endif
 #endif
     // IMPORTANT - MUST BE CALLED AFTER THE CLUSTER IS SWITCHED ON!!!!
     printf("Constructor\n");
-    int ConstructorErr = cifar10_model_uint8CNN_Construct();
+    int ConstructorErr = cifar10_modelCNN_Construct();
     if (ConstructorErr)
     {
-        printf("Graph constructor exited with error: %d\n(check the generated file cifar10_model_uint8Kernels.c to see which memory have failed to be allocated)\n", ConstructorErr);
+        printf("Graph constructor exited with error: %d\n(check the generated file cifar10_modelKernels.c to see which memory have failed to be allocated)\n", ConstructorErr);
         pmsis_exit(-6);
     }
 
 
     printf("Call cluster\n");
 #ifndef __EMUL__
-    struct pi_cluster_task task = {0};
-    task.entry = cluster;
-    task.arg = NULL;
-    task.stack_size = (unsigned int) STACK_SIZE;
-    task.slave_stack_size = (unsigned int) SLAVE_STACK_SIZE;
-
+    struct pi_cluster_task task;
+    pi_cluster_task(&task, cluster, NULL);
+    pi_cluster_task_stacks(&task, NULL, SLAVE_STACK_SIZE);
     pi_cluster_send_task_to_cl(&cluster_dev, &task);
 #else
     cluster();
 #endif
 
-    cifar10_model_uint8CNN_Destruct();
+    cifar10_modelCNN_Destruct();
 
 #ifdef PERF
     {
       unsigned int TotalCycles = 0, TotalOper = 0;
       printf("\n");
       for (unsigned int i=0; i<(sizeof(AT_GraphPerf)/sizeof(unsigned int)); i++) {
-        printf("%45s: Cycles: %10u, Operations: %10u, Operations/Cycle: %f\n", AT_GraphNodeNames[i], AT_GraphPerf[i], AT_GraphOperInfosNames[i], ((float) AT_GraphOperInfosNames[i])/ AT_GraphPerf[i]);
         TotalCycles += AT_GraphPerf[i]; TotalOper += AT_GraphOperInfosNames[i];
       }
+      for (unsigned int i=0; i<(sizeof(AT_GraphPerf)/sizeof(unsigned int)); i++) {
+        printf("%45s: Cycles: %12u, Cyc%%: %5.1f%%, Operations: %12u, Op%%: %5.1f%%, Operations/Cycle: %f\n", AT_GraphNodeNames[i], AT_GraphPerf[i], 100*((float) (AT_GraphPerf[i]) / TotalCycles), AT_GraphOperInfosNames[i], 100*((float) (AT_GraphOperInfosNames[i]) / TotalOper), ((float) AT_GraphOperInfosNames[i])/ AT_GraphPerf[i]);
+      }
       printf("\n");
-      printf("%45s: Cycles: %10u, Operations: %10u, Operations/Cycle: %f\n", "Total", TotalCycles, TotalOper, ((float) TotalOper)/ TotalCycles);
+      printf("%45s: Cycles: %12u, Cyc%%: 100.0%%, Operations: %12u, Op%%: 100.0%%, Operations/Cycle: %f\n", "Total", TotalCycles, TotalOper, ((float) TotalOper)/ TotalCycles);
       printf("\n");
     }
 #endif
@@ -154,11 +160,11 @@ int test_cifar10_model_uint8(void)
 
 int main(int argc, char *argv[])
 {
-    printf("\n\n\t *** NNTOOL cifar10_model_uint8 Example ***\n\n");
+    printf("\n\n\t *** NNTOOL cifar10_model Example ***\n\n");
     #ifdef __EMUL__
-    test_cifar10_model_uint8();
+    test_cifar10_model();
     #else
-    return pmsis_kickoff((void *) test_cifar10_model_uint8);
+    return pmsis_kickoff((void *) test_cifar10_model);
     #endif
     return 0;
 }

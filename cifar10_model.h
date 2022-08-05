@@ -1,7 +1,7 @@
 #ifndef __cifar10_model_uint8_H__
 #define __cifar10_model_uint8_H__
 
-#define __PREFIX(x) cifar10_model_uint8 ## x
+#define __PREFIX(x) cifar10_model ## x
 
 // Include basic GAP builtins defined in the Autotiler
 #include "Gap.h"
@@ -15,5 +15,5 @@
 #include <string.h>
 #endif
 
-extern AT_HYPERFLASH_FS_EXT_ADDR_TYPE cifar10_model_uint8_L3_Flash;
+extern AT_HYPERFLASH_FS_EXT_ADDR_TYPE cifar10_model_L3_Flash;
 #endif

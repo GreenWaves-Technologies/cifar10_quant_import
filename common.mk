@@ -1,20 +1,22 @@
 NNTOOL=nntool
 MODEL_SQ8=1
-# MODEL_POW2=1
-# MODEL_FP16=1
-# MODEL_NE16=1
 
 MODEL_SUFFIX?=
-MODEL_PREFIX?=cifar10_model_uint8
+MODEL_PREFIX?=cifar10_model
 MODEL_PYTHON=python3
 MODEL_BUILD=BUILD_MODEL$(MODEL_SUFFIX)
 
+ifeq ($(ONNX), 1)
+TRAINED_MODEL = model/quant_cifar10.onnx
+else
 TRAINED_MODEL = model/cifar10_model_uint8.tflite
+MODEL_QUANTIZED=1
+APP_CFLAGS = -DOUTPUT_SHORT
+endif
 
 MODEL_EXPRESSIONS = 
 
 NNTOOL_EXTRA_FLAGS += 
-MODEL_QUANTIZED=1
 
 # Memory sizes for cluster L1, SoC L2 and Flash
 ifeq '$(TARGET_CHIP_FAMILY)' 'GAP9'
@@ -33,12 +35,12 @@ endif
 
 
 # Cluster stack size for master core and other cores
-CLUSTER_STACK_SIZE=4096
-CLUSTER_SLAVE_STACK_SIZE=1024
+CLUSTER_STACK_SIZE=2048
+CLUSTER_SLAVE_STACK_SIZE=512
 CLUSTER_NUM_CORES=8
 
 MODEL_HWC ?= 0
-MODEL_NE16?= 0
+MODEL_NE16?= 1
 
 NNTOOL_SCRIPT = model/nntool_script_chw
 ifeq ($(MODEL_HWC), 1)
