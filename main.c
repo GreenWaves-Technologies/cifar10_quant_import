@@ -99,6 +99,7 @@ int test_cifar10_model(void)
     pi_cluster_conf_init(&cl_conf);
     cl_conf.id = 0;
     cl_conf.cc_stack_size = STACK_SIZE;
+    cl_conf.scratch_size = SLAVE_STACK_SIZE * pi_cl_cluster_nb_pe_cores();
     pi_open_from_conf(&cluster_dev, (void *) &cl_conf);
     if (pi_cluster_open(&cluster_dev))
     {
@@ -130,7 +131,12 @@ int test_cifar10_model(void)
 #ifndef __EMUL__
     struct pi_cluster_task task;
     pi_cluster_task(&task, cluster, NULL);
-    pi_cluster_task_stacks(&task, NULL, SLAVE_STACK_SIZE);
+    #ifdef __GAP8__
+        task.stack_size = STACK_SIZE;
+        task.slave_stack_size = SLAVE_STACK_SIZE;
+    #else
+        pi_cluster_task_stacks(&task, pi_cl_l1_scratch_alloc(&cluster_dev, &task, SLAVE_STACK_SIZE * pi_cl_cluster_nb_pe_cores()), SLAVE_STACK_SIZE);
+    #endif
     pi_cluster_send_task_to_cl(&cluster_dev, &task);
 #else
     cluster();

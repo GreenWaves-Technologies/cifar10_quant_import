@@ -41,6 +41,9 @@ CLUSTER_NUM_CORES=8
 
 MODEL_HWC ?= 0
 MODEL_NE16?= 1
+ifneq '$(TARGET_CHIP_FAMILY)' 'GAP9'
+	MODEL_NE16=0
+endif
 
 NNTOOL_SCRIPT = model/nntool_script_chw
 ifeq ($(MODEL_HWC), 1)
