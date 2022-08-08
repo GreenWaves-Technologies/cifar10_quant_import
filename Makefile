@@ -46,6 +46,8 @@ NNTOOL_EXTRA_FLAGS ?=
 
 include common/model_decl.mk
 IMAGE = $(CURDIR)/samples/cifar_test_0_3.ppm
+CI_CLASS = 3
+APP_CFLAGS += -DCI=$(CI_CLASS)
 
 APP = $(MODEL_PREFIX)
 APP_SRCS += main.c $(MODEL_GEN_C) $(MODEL_COMMON_SRCS) $(CNN_LIB)

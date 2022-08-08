@@ -45,6 +45,7 @@ L2_MEM signed char Output_1[10];
 #endif
 #endif
 
+int MaxPred, PredClass;
 static void cluster()
 {
     #ifdef PERF
@@ -55,7 +56,7 @@ static void cluster()
 
     cifar10_modelCNN(Input_1, Output_1);
     printf("Runner completed\n");
-    int MaxPred=Output_1[0], PredClass=0;
+    MaxPred=Output_1[0], PredClass=0;
     for (int i=1; i<10; i++){
         printf("Class: %10s --> %5.2f\n", ClassDict[i], (((float) Output_1[i]) - cifar10_model_Output_1_OUT_ZERO_POINT) * cifar10_model_Output_1_OUT_SCALE);
         if (Output_1[i] > MaxPred) {
@@ -152,8 +153,11 @@ int test_cifar10_model(void)
       printf("\n");
     }
 #endif
+    #ifdef CI
+    if (PredClass == CI) {printf("Correct Results\n"); pmsis_exit(0);}
+    else {printf("Wrong Results\n"); pmsis_exit(-1);}
+    #endif
 
-    printf("Ended\n");
     pmsis_exit(0);
     return 0;
 }
