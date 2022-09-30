@@ -61,7 +61,7 @@ APP_CFLAGS += -DAT_IMAGE=$(IMAGE) -DFREQ_FC=$(FREQ_FC) -DFREQ_CL=$(FREQ_CL)
 READFS_FILES=$(abspath $(MODEL_TENSORS))
 
 # all depends on the model
-all:: model
+build:: model
 
 clean:: clean_model
 
