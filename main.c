@@ -16,9 +16,6 @@
 #include "gaplib/ImgIO.h"
 #define __XSTR(__s) __STR(__s)
 #define __STR(__s) #__s 
-#ifdef __EMUL__
-#define pmsis_exit(n) exit(n)
-#endif
 
 #ifndef STACK_SIZE
 #define STACK_SIZE      1024
@@ -85,7 +82,7 @@ int test_cifar10_model(void)
     printf("Reading image in %s\n", Traspose2CHW?"CHW":"HWC");
     if (ReadImageFromFile(ImageName, 32, 32, 3, Input_1, 32*32*3*sizeof(char), IMGIO_OUTPUT_CHAR, Traspose2CHW)) {
         printf("Failed to load image %s\n", ImageName);
-        pmsis_exit(-1);
+        return -1;
     }
     // NE16 takes unsigned input with zero point implied (-128)
     #if !defined(MODEL_NE16)
@@ -104,7 +101,7 @@ int test_cifar10_model(void)
     if (pi_cluster_open(&cluster_dev))
     {
         printf("Cluster open failed !\n");
-        pmsis_exit(-4);
+        return -4;
     }
     pi_freq_set(PI_FREQ_DOMAIN_FC, FREQ_FC*1000*1000);
     pi_freq_set(PI_FREQ_DOMAIN_CL, FREQ_CL*1000*1000);
@@ -123,7 +120,7 @@ int test_cifar10_model(void)
     if (ConstructorErr)
     {
         printf("Graph constructor exited with error: %d\n(check the generated file cifar10_modelKernels.c to see which memory have failed to be allocated)\n", ConstructorErr);
-        pmsis_exit(-6);
+        return -6;
     }
 
 
@@ -160,21 +157,15 @@ int test_cifar10_model(void)
     }
 #endif
     #ifdef CI
-    if (PredClass == CI) {printf("Correct Results\n"); pmsis_exit(0);}
-    else {printf("Wrong Results\n"); pmsis_exit(-1);}
+    if (PredClass == CI) {printf("Correct Results\n"); return 0;}
+    else {printf("Wrong Results\n"); return -1;}
     #endif
 
-    pmsis_exit(0);
     return 0;
 }
 
 int main(int argc, char *argv[])
 {
     printf("\n\n\t *** NNTOOL cifar10_model Example ***\n\n");
-    #ifdef __EMUL__
-    test_cifar10_model();
-    #else
-    return pmsis_kickoff((void *) test_cifar10_model);
-    #endif
-    return 0;
+    return test_cifar10_model();
 }
